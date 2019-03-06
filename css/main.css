@@ -16,7 +16,10 @@ COLORS
     margin: 0;
     padding: 0;
 }
-
+@font-face {
+    font-family: '1942 report';
+    src: url('../assets/Fonts/1942.ttf');
+}
 body {
     /* font-family: 'Hind Madurai', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; */
     font-family: "1942 report";
