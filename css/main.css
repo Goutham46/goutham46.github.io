@@ -1,9 +1,47 @@
+/* 
+COLORS 
+#e0fbfc - light cyan
+#c2dfe3 - columbia blue
+#9db4c0 - wild blue yonder
+#5c6b73 - cadet
+#253237 - gunmetal
+*/
+/* 
+#dfad70 - Background
+#cb4f47 - heading,img border;
+#988972 - accent
+#574946 - text
+*/
+* {
+    margin: 0;
+    padding: 0;
+}
+
 body {
-    font-family: 'Hind Madurai', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* font-family: 'Hind Madurai', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; */
+    font-family: "1942 report";
+    background: #dfad70;
+    background-size: cover;
+    /* width: 700px; */
+    margin: 200px auto;
 }
 
 h1 {
-    font-size: 60px;
     text-align: center;
-    font-weight: 300;
+    font-size: 100px;
+    color: #cb4f47;
+    text-shadow: 2px 5px #988972;
+    text-transform: uppercase;
+}
+
+p {
+    font-size: 30px;
+    line-height: 1.6;
+    color: #574946;
+    /* background-color: #c00; */
+}
+
+p::selection {
+    background: #cb4f47;
+    color: #d8d7d5;
 }
