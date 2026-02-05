@@ -1,18 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Goutham | Portfolio</title>
-    <link rel="stylesheet" href="css/normalise.css">
-    <link href="https://fonts.googleapis.com/css?family=Hind+Madurai:300,400,500,700" rel="stylesheet"> 
-    <link rel="stylesheet" href="css/main.css">
+<meta charset="UTF-8">
+<title>Circle Ball Game</title>
+
+<style>
+  body {
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    color: white;
+    font-family: Arial;
+  }
+
+  canvas {
+    background: #000;
+    border-radius: 10px;
+  }
+
+  #info {
+    position: absolute;
+    top: 20px;
+    text-align: center;
+  }
+</style>
 </head>
+
 <body>
-    <h1>Goutham</h1>
-    <a href="https://cdn-images-1.medium.com/max/2600/1*TYAzzTJ60x-qg5N81ElU9A.png">My image</a>
-    <p1>Web Developer</p1></br>
-    <p2>Innovative THinker</p2>   
+
+<div id="info">
+  <h2>🎯 Click the Ball to Change Direction</h2>
+  <p>Score: <span id="score">0</span></p>
+</div>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<script>
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const centerX = 200;
+const centerY = 200;
+const radius = 170;
+
+let ball = {
+  x: centerX,
+  y: centerY,
+  r: 10,
+  dx: 3,
+  dy: 2
+};
+
+let score = 0;
+let gameOver = false;
+
+/* Draw Circle Boundary */
+function drawCircle() {
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+/* Draw Ball */
+function drawBall() {
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+  ctx.fillStyle = "lime";
+  ctx.fill();
+}
+
+/* Distance */
+function distance(x1,y1,x2,y2){
+  return Math.sqrt((x1-x2)**2 + (y1-y2)**2);
+}
+
+/* Game Loop */
+function update() {
+
+  if(gameOver) return;
+
+  ctx.clearRect(0,0,400,400);
+
+  drawCircle();
+  drawBall();
+
+  ball.x += ball.dx;
+  ball.y += ball.dy;
+
+  // Check boundary
+  let d = distance(ball.x, ball.y, centerX, centerY);
+
+  if(d + ball.r >= radius){
+    gameOver = true;
+    alert("Game Over! Score: " + score);
+    location.reload();
+  }
+
+  requestAnimationFrame(update);
+}
+
+/* Click Handler */
+canvas.addEventListener("click", function(e){
+
+  if(gameOver) return;
+
+  const rect = canvas.getBoundingClientRect();
+
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+
+  const d = distance(mouseX, mouseY, ball.x, ball.y);
+
+  // If click on ball
+  if(d <= ball.r + 5){
+
+    // Change direction randomly
+    ball.dx = (Math.random()*6 - 3);
+    ball.dy = (Math.random()*6 - 3);
+
+    score++;
+    document.getElementById("score").innerText = score;
+  }
+});
+
+update();
+
+</script>
+
 </body>
 </html>
