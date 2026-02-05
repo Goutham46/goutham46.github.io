@@ -27,6 +27,19 @@
     top: 20px;
     text-align: center;
   }
+
+  #restart {
+    position: absolute;
+    bottom: 20px;
+    padding: 8px 15px;
+    background: lime;
+    color: black;
+    border: none;
+    cursor: pointer;
+    display: none;
+    font-weight: bold;
+    border-radius: 5px;
+  }
 </style>
 </head>
 
@@ -36,6 +49,8 @@
   <h2>🎯 Avoid the Edge & Cursor</h2>
   <p>Score: <span id="score">0</span></p>
 </div>
+
+<button id="restart">Restart</button>
 
 <canvas id="game" width="400" height="400"></canvas>
 
@@ -48,50 +63,21 @@ const centerX = 200;
 const centerY = 200;
 const radius = 170;
 
-// Mouse position
-let mouse = {
-  x: null,
-  y: null
-};
+const restartBtn = document.getElementById("restart");
+
+// Mouse
+let mouse = { x: null, y: null };
 
 // Ball
-let ball = {
-  x: centerX,
-  y: centerY,
-  r: 10,
-  dx: 2.5,
-  dy: 2.5,
-  maxSpeed: 6
-};
-
+let ball;
 let score = 0;
 let gameOver = false;
 
-/* Distance helper */
+
+/* Distance */
 function distance(x1,y1,x2,y2){
   return Math.hypot(x1-x2, y1-y2);
 }
 
-/* Mouse tracking */
-canvas.addEventListener("mousemove", e => {
 
-  const rect = canvas.getBoundingClientRect();
-
-  mouse.x = e.clientX - rect.left;
-  mouse.y = e.clientY - rect.top;
-
-});
-
-canvas.addEventListener("mouseleave", ()=>{
-  mouse.x = null;
-  mouse.y = null;
-});
-
-/* Click handler */
-canvas.addEventListener("click", e => {
-
-  if(gameOver) return;
-
-  const rect = canvas.getBoundingClientRect();
-
-  const mx = e.clientX - rect.left;
+/* Re*
