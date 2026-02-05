@@ -18,7 +18,8 @@
 
   canvas {
     background: #000;
-    border-radius: 10px;
+    border-radius: 12px;
+    cursor: crosshair;
   }
 
   #info {
@@ -32,7 +33,7 @@
 <body>
 
 <div id="info">
-  <h2>🎯 Click the Ball to Change Direction</h2>
+  <h2>🎯 Avoid the Edge & Cursor</h2>
   <p>Score: <span id="score">0</span></p>
 </div>
 
@@ -47,91 +48,50 @@ const centerX = 200;
 const centerY = 200;
 const radius = 170;
 
+// Mouse position
+let mouse = {
+  x: null,
+  y: null
+};
+
+// Ball
 let ball = {
   x: centerX,
   y: centerY,
   r: 10,
-  dx: 3,
-  dy: 2
+  dx: 2.5,
+  dy: 2.5,
+  maxSpeed: 6
 };
 
 let score = 0;
 let gameOver = false;
 
-/* Draw Circle Boundary */
-function drawCircle() {
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-  ctx.strokeStyle = "white";
-  ctx.lineWidth = 3;
-  ctx.stroke();
-}
-
-/* Draw Ball */
-function drawBall() {
-  ctx.beginPath();
-  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
-  ctx.fillStyle = "lime";
-  ctx.fill();
-}
-
-/* Distance */
+/* Distance helper */
 function distance(x1,y1,x2,y2){
-  return Math.sqrt((x1-x2)**2 + (y1-y2)**2);
+  return Math.hypot(x1-x2, y1-y2);
 }
 
-/* Game Loop */
-function update() {
+/* Mouse tracking */
+canvas.addEventListener("mousemove", e => {
 
-  if(gameOver) return;
+  const rect = canvas.getBoundingClientRect();
 
-  ctx.clearRect(0,0,400,400);
+  mouse.x = e.clientX - rect.left;
+  mouse.y = e.clientY - rect.top;
 
-  drawCircle();
-  drawBall();
+});
 
-  ball.x += ball.dx;
-  ball.y += ball.dy;
+canvas.addEventListener("mouseleave", ()=>{
+  mouse.x = null;
+  mouse.y = null;
+});
 
-  // Check boundary
-  let d = distance(ball.x, ball.y, centerX, centerY);
-
-  if(d + ball.r >= radius){
-    gameOver = true;
-    alert("Game Over! Score: " + score);
-    location.reload();
-  }
-
-  requestAnimationFrame(update);
-}
-
-/* Click Handler */
-canvas.addEventListener("click", function(e){
+/* Click handler */
+canvas.addEventListener("click", e => {
 
   if(gameOver) return;
 
   const rect = canvas.getBoundingClientRect();
 
-  const mouseX = e.clientX - rect.left;
-  const mouseY = e.clientY - rect.top;
-
-  const d = distance(mouseX, mouseY, ball.x, ball.y);
-
-  // If click on ball
-  if(d <= ball.r + 5){
-
-    // Change direction randomly
-    ball.dx = (Math.random()*6 - 3);
-    ball.dy = (Math.random()*6 - 3);
-
-    score++;
-    document.getElementById("score").innerText = score;
-  }
-});
-
-update();
-
-</script>
-
-</body>
-</html>
+  const mx = e.clientX - rect.left;
