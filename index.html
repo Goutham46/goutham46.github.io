@@ -4,16 +4,44 @@
   <meta charset="UTF-8">
   <title>Circle Ball Mouse Game</title>
   <style>
-    body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #111; }
-    canvas { background: #222; border-radius: 50%; }
+    body {
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #111;
+    }
+    .wrapper {
+      position: relative;
+    }
+    canvas {
+      background: #222;
+      border-radius: 50%;
+      display: block;
+    }
+    #restartBtn {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      padding: 10px 20px;
+      font-size: 16px;
+      display: none;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
-<canvas id="game" width="500" height="500"></canvas>
+<div class="wrapper">
+  <canvas id="game" width="500" height="500"></canvas>
+  <button id="restartBtn">Restart</button>
+</div>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+const restartBtn = document.getElementById('restartBtn');
 
 const arena = {
   x: canvas.width / 2,
@@ -28,18 +56,111 @@ const ball = {
 };
 
 let gameOver = false;
+let score = 0;
 
-// Reset game
+// --- yellow enemy dots ---
+const dots = [];
+let DOT_RADIUS = 6;
+let DOT_SPEED = 1.5;
+let dotsPerSpawn = 1;
+const BASE_SPAWN_INTERVAL = 700;
+const DIFFICULTY_INTERVAL = 5000;
+
+// --- NEW: red collectible dots ---
+const collectibles = [];
+const COLLECT_RADIUS = 6;
+let COLLECT_SPEED = 1.2;    // can be different from DOT_SPEED
+let collectsPerSpawn = 1;   // how many collectibles per wave
+
+// Spawn one enemy dot
+function spawnOneDot() {
+  const angle = Math.random() * Math.PI * 2;
+  const spawnX = arena.x + Math.cos(angle) * arena.radius;
+  const spawnY = arena.y + Math.sin(angle) * arena.radius;
+
+  const dx = ball.x - spawnX;
+  const dy = ball.y - spawnY;
+  const len = Math.hypot(dx, dy) || 1;
+  const vx = (dx / len) * DOT_SPEED;
+  const vy = (dy / len) * DOT_SPEED;
+
+  dots.push({ x: spawnX, y: spawnY, radius: DOT_RADIUS, vx, vy });
+}
+
+// Spawn one collectible red ball
+function spawnOneCollectible() {
+  const angle = Math.random() * Math.PI * 2;
+  const spawnX = arena.x + Math.cos(angle) * arena.radius;
+  const spawnY = arena.y + Math.sin(angle) * arena.radius;
+
+  const dx = ball.x - spawnX;
+  const dy = ball.y - spawnY;
+  const len = Math.hypot(dx, dy) || 1;
+  const vx = (dx / len) * COLLECT_SPEED;
+  const vy = (dy / len) * COLLECT_SPEED;
+
+  collectibles.push({ x: spawnX, y: spawnY, radius: COLLECT_RADIUS, vx, vy });
+}
+
+// Enemy spawn wave
+function spawnDots() {
+  if (gameOver) return;
+  for (let i = 0; i < dotsPerSpawn; i++) {
+    spawnOneDot();
+  }
+}
+
+// NEW: collectible spawn wave
+function spawnCollectibles() {
+  if (gameOver) return;
+  for (let i = 0; i < collectsPerSpawn; i++) {
+    spawnOneCollectible();
+  }
+}
+
+// Difficulty scaling every 5 seconds
+function increaseDifficulty() {
+  if (gameOver) return;
+
+  DOT_SPEED += 0.3;
+  dotsPerSpawn += 1;
+
+  COLLECT_SPEED += 0.2;   // optional: make collectibles faster too
+  collectsPerSpawn += 1;  // optional: more collectibles over time
+
+  // renormalize existing enemy velocities
+  for (const d of dots) {
+    const len = Math.hypot(d.vx, d.vy) || 1;
+    d.vx = (d.vx / len) * DOT_SPEED;
+    d.vy = (d.vy / len) * DOT_SPEED;
+  }
+  // renormalize existing collectibles
+  for (const c of collectibles) {
+    const len = Math.hypot(c.vx, c.vy) || 1;
+    c.vx = (c.vx / len) * COLLECT_SPEED;
+    c.vy = (c.vy / len) * COLLECT_SPEED;
+  }
+}
+
+// Reset game state
 function resetGame() {
   ball.x = arena.x;
   ball.y = arena.y;
   gameOver = false;
+  dots.length = 0;
+  collectibles.length = 0;
+  restartBtn.style.display = 'none';
+  score = 0;
+
+  DOT_SPEED = 1.5;
+  dotsPerSpawn = 1;
+  COLLECT_SPEED = 1.2;
+  collectsPerSpawn = 1;
 }
 
-// Update ball position to follow mouse
+// Mouse controls
 canvas.addEventListener('mousemove', (e) => {
   if (gameOver) return;
-
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
@@ -47,55 +168,164 @@ canvas.addEventListener('mousemove', (e) => {
   ball.x = mx;
   ball.y = my;
 
-  checkCollision();
+  checkCircleBoundary();
 });
 
-// Collision: distance from center of arena to ball center
-function checkCollision() {
+// Ball vs arena boundary
+function checkCircleBoundary() {
   const dx = ball.x - arena.x;
   const dy = ball.y - arena.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-
-  // If edge of ball touches or crosses the arena circle
+  const dist = Math.hypot(dx, dy);
   if (dist + ball.radius >= arena.radius) {
-    gameOver = true;
-    // Small delay then restart
-    setTimeout(resetGame, 800);
+    triggerGameOver();
   }
 }
 
-// Draw arena and ball
+// Enemy dot vs ball collision (game over)
+function checkDotCollisions() {
+  for (const d of dots) {
+    const dx = d.x - ball.x;
+    const dy = d.y - ball.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= d.radius + ball.radius) {
+      triggerGameOver();
+      return;
+    }
+  }
+}
+
+// NEW: collectible vs ball collision (score++)
+function checkCollectibleCollisions() {
+  for (let i = collectibles.length - 1; i >= 0; i--) {
+    const c = collectibles[i];
+    const dx = c.x - ball.x;
+    const dy = c.y - ball.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= c.radius + ball.radius) {
+      // collected: increase score and remove collectible
+      score += 1;
+      collectibles.splice(i, 1);
+    }
+  }
+
+  // score text
+ ctx.fillStyle = '#fff';
+ ctx.font = '18px sans-serif';
+ ctx.textAlign = 'left';
+ ctx.fillText('Points: ' + score, 10, 25); // top-left
+
+
+}
+
+function triggerGameOver() {
+  if (gameOver) return;
+  gameOver = true;
+  restartBtn.style.display = 'block';
+}
+
+// Restart button
+restartBtn.addEventListener('click', () => {
+  resetGame();
+});
+
+// Update enemies and collectibles
+function updateDots() {
+  for (const d of dots) {
+    d.x += d.vx;
+    d.y += d.vy;
+  }
+  for (let i = dots.length - 1; i >= 0; i--) {
+    const d = dots[i];
+    const distToCenter = Math.hypot(d.x - arena.x, d.y - arena.y);
+    if (distToCenter < 5) {
+      dots.splice(i, 1);
+    }
+  }
+}
+
+function updateCollectibles() {
+  for (const c of collectibles) {
+    c.x += c.vx;
+    c.y += c.vy;
+  }
+  for (let i = collectibles.length - 1; i >= 0; i--) {
+    const c = collectibles[i];
+    const distToCenter = Math.hypot(c.x - arena.x, c.y - arena.y);
+    if (distToCenter < 5) {
+      collectibles.splice(i, 1);
+    }
+  }
+}
+
+// Draw loop
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Arena
+  // arena
   ctx.beginPath();
   ctx.arc(arena.x, arena.y, arena.radius, 0, Math.PI * 2);
   ctx.strokeStyle = '#0f0';
   ctx.lineWidth = 4;
   ctx.stroke();
 
-  // Ball
+  // enemy dots (yellow)
+  for (const d of dots) {
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff0';
+    ctx.fill();
+  }
+
+  // collectibles (red)
+  for (const c of collectibles) {
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#f33';
+    ctx.fill();
+  }
+
+  // ball
   ctx.beginPath();
   ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
   ctx.fillStyle = gameOver ? '#f00' : '#09f';
   ctx.fill();
 
-  // Text
+  // score text
   ctx.fillStyle = '#fff';
   ctx.font = '16px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Score: ' + score, 10, 20); // standard score drawing on canvas [web:69]
+
+
+  // status text
   ctx.textAlign = 'center';
   if (gameOver) {
-    ctx.fillText('Game Over! Restarting...', arena.x, arena.y - 220);
+    ctx.fillText('Game Over!', arena.x, arena.y - 220);
+    ctx.fillText('Avoid yellow, collect red', arena.x, arena.y - 200);
+    ctx.fillText('Click Restart button', arena.x, arena.y - 180);
   } else {
-    ctx.fillText('Keep the ball inside the circle', arena.x, arena.y - 220);
+    ctx.fillText('Avoid yellow, collect red balls', arena.x, arena.y - 220);
+  }
+
+  if (!gameOver) {
+    updateDots();
+    updateCollectibles();
+    checkDotCollisions();
+    checkCollectibleCollisions();
   }
 
   requestAnimationFrame(draw);
 }
 
+// Timers
+setInterval(spawnDots, BASE_SPAWN_INTERVAL);
+setInterval(spawnCollectibles, BASE_SPAWN_INTERVAL * 2); // collectibles a bit less frequent
+setInterval(increaseDifficulty, DIFFICULTY_INTERVAL);
+
 resetGame();
 draw();
 </script>
+
+
 </body>
 </html>
