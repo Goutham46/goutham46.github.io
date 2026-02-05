@@ -1,83 +1,203 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Circle Ball Game</title>
+<title>Ball Circle Game</title>
 
 <style>
-  body {
-    background: #111;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    color: white;
-    font-family: Arial;
-  }
+body {
+  margin: 0;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  color: white;
+  font-family: Arial;
+}
 
-  canvas {
-    background: #000;
-    border-radius: 12px;
-    cursor: crosshair;
-  }
+#info {
+  position: absolute;
+  top: 15px;
+  text-align: center;
+}
 
-  #info {
-    position: absolute;
-    top: 20px;
-    text-align: center;
-  }
-
-  #restart {
-    position: absolute;
-    bottom: 20px;
-    padding: 8px 15px;
-    background: lime;
-    color: black;
-    border: none;
-    cursor: pointer;
-    display: none;
-    font-weight: bold;
-    border-radius: 5px;
-  }
+canvas {
+  background: black;
+  border-radius: 10px;
+  cursor: crosshair;
+}
 </style>
 </head>
 
 <body>
 
 <div id="info">
-  <h2>🎯 Avoid the Edge & Cursor</h2>
-  <p>Score: <span id="score">0</span></p>
+  <h3>Click Ball • Avoid Edge • Use Cursor</h3>
+  Score: <span id="score">0</span>
 </div>
-
-<button id="restart">Restart</button>
 
 <canvas id="game" width="400" height="400"></canvas>
 
 <script>
 
+// Canvas setup
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const centerX = 200;
-const centerY = 200;
-const radius = 170;
-
-const restartBtn = document.getElementById("restart");
+// Circle
+const CX = 200;
+const CY = 200;
+const R = 170;
 
 // Mouse
-let mouse = { x: null, y: null };
+let mouseX = -1000;
+let mouseY = -1000;
 
-// Ball
-let ball;
+// Game state
 let score = 0;
 let gameOver = false;
 
+// Ball
+let ball = {
+  x: CX,
+  y: CY,
+  r: 10,
+  dx: 1.2,
+  dy: 1,
+  max: 2.5
+};
 
-/* Distance */
-function distance(x1,y1,x2,y2){
+// Distance
+function dist(x1,y1,x2,y2){
   return Math.hypot(x1-x2, y1-y2);
 }
 
+// Mouse move
+canvas.onmousemove = e => {
 
-/* Re*
+  const r = canvas.getBoundingClientRect();
+
+  mouseX = e.clientX - r.left;
+  mouseY = e.clientY - r.top;
+
+};
+
+// Mouse leave
+canvas.onmouseleave = ()=>{
+  mouseX = -1000;
+  mouseY = -1000;
+};
+
+
+// Click
+canvas.onclick = e => {
+
+  if(gameOver) return;
+
+  const r = canvas.getBoundingClientRect();
+
+  const x = e.clientX - r.left;
+  const y = e.clientY - r.top;
+
+  if(dist(x,y,ball.x,ball.y) < ball.r+5){
+
+    ball.dx = Math.random()*2 - 1;
+    ball.dy = Math.random()*2 - 1;
+
+    score++;
+    document.getElementById("score").textContent = score;
+  }
+};
+
+
+// Draw circle
+function drawCircle(){
+
+  ctx.beginPath();
+  ctx.arc(CX, CY, R, 0, Math.PI*2);
+
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 3;
+
+  ctx.stroke();
+}
+
+// Draw ball
+function drawBall(){
+
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+
+  ctx.fillStyle = "lime";
+
+  ctx.fill();
+}
+
+// Limit speed
+function limit(){
+
+  let s = Math.hypot(ball.dx, ball.dy);
+
+  if(s > ball.max){
+
+    ball.dx = ball.dx/s * ball.max;
+    ball.dy = ball.dy/s * ball.max;
+  }
+}
+
+// Mouse push
+function mouseForce(){
+
+  let d = dist(mouseX, mouseY, ball.x, ball.y);
+
+  if(d < 70){
+
+    let f = (70-d)/70;
+
+    let a = Math.atan2(
+      ball.y - mouseY,
+      ball.x - mouseX
+    );
+
+    ball.dx += Math.cos(a)*f*0.25;
+    ball.dy += Math.sin(a)*f*0.25;
+  }
+}
+
+
+// Game loop
+function loop(){
+
+  ctx.clearRect(0,0,400,400);
+
+  if(!gameOver){
+
+    mouseForce();
+    limit();
+
+    ball.x += ball.dx;
+    ball.y += ball.dy;
+
+    let d = dist(ball.x, ball.y, CX, CY);
+
+    if(d + ball.r >= R){
+
+      gameOver = true;
+      alert("Game Over! Score: "+score);
+    }
+  }
+
+  drawCircle();
+  drawBall();
+
+  requestAnimationFrame(loop);
+}
+
+// Start
+loop();
+
+</script>
+
+</body>
+</html>
