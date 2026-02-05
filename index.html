@@ -1,203 +1,101 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Ball Circle Game</title>
-
-<style>
-body {
-  margin: 0;
-  background: #111;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  color: white;
-  font-family: Arial;
-}
-
-#info {
-  position: absolute;
-  top: 15px;
-  text-align: center;
-}
-
-canvas {
-  background: black;
-  border-radius: 10px;
-  cursor: crosshair;
-}
-</style>
+  <meta charset="UTF-8">
+  <title>Circle Ball Mouse Game</title>
+  <style>
+    body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #111; }
+    canvas { background: #222; border-radius: 50%; }
+  </style>
 </head>
-
 <body>
-
-<div id="info">
-  <h3>Click Ball • Avoid Edge • Use Cursor</h3>
-  Score: <span id="score">0</span>
-</div>
-
-<canvas id="game" width="400" height="400"></canvas>
+<canvas id="game" width="500" height="500"></canvas>
 
 <script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
 
-// Canvas setup
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
+const arena = {
+  x: canvas.width / 2,
+  y: canvas.height / 2,
+  radius: 200
+};
 
-// Circle
-const CX = 200;
-const CY = 200;
-const R = 170;
+const ball = {
+  x: arena.x,
+  y: arena.y,
+  radius: 15
+};
 
-// Mouse
-let mouseX = -1000;
-let mouseY = -1000;
-
-// Game state
-let score = 0;
 let gameOver = false;
 
-// Ball
-let ball = {
-  x: CX,
-  y: CY,
-  r: 10,
-  dx: 1.2,
-  dy: 1,
-  max: 2.5
-};
-
-// Distance
-function dist(x1,y1,x2,y2){
-  return Math.hypot(x1-x2, y1-y2);
+// Reset game
+function resetGame() {
+  ball.x = arena.x;
+  ball.y = arena.y;
+  gameOver = false;
 }
 
-// Mouse move
-canvas.onmousemove = e => {
+// Update ball position to follow mouse
+canvas.addEventListener('mousemove', (e) => {
+  if (gameOver) return;
 
-  const r = canvas.getBoundingClientRect();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
 
-  mouseX = e.clientX - r.left;
-  mouseY = e.clientY - r.top;
+  ball.x = mx;
+  ball.y = my;
 
-};
+  checkCollision();
+});
 
-// Mouse leave
-canvas.onmouseleave = ()=>{
-  mouseX = -1000;
-  mouseY = -1000;
-};
+// Collision: distance from center of arena to ball center
+function checkCollision() {
+  const dx = ball.x - arena.x;
+  const dy = ball.y - arena.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
 
-
-// Click
-canvas.onclick = e => {
-
-  if(gameOver) return;
-
-  const r = canvas.getBoundingClientRect();
-
-  const x = e.clientX - r.left;
-  const y = e.clientY - r.top;
-
-  if(dist(x,y,ball.x,ball.y) < ball.r+5){
-
-    ball.dx = Math.random()*2 - 1;
-    ball.dy = Math.random()*2 - 1;
-
-    score++;
-    document.getElementById("score").textContent = score;
+  // If edge of ball touches or crosses the arena circle
+  if (dist + ball.radius >= arena.radius) {
+    gameOver = true;
+    // Small delay then restart
+    setTimeout(resetGame, 800);
   }
-};
+}
 
+// Draw arena and ball
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-// Draw circle
-function drawCircle(){
-
+  // Arena
   ctx.beginPath();
-  ctx.arc(CX, CY, R, 0, Math.PI*2);
-
-  ctx.strokeStyle = "white";
-  ctx.lineWidth = 3;
-
+  ctx.arc(arena.x, arena.y, arena.radius, 0, Math.PI * 2);
+  ctx.strokeStyle = '#0f0';
+  ctx.lineWidth = 4;
   ctx.stroke();
-}
 
-// Draw ball
-function drawBall(){
-
+  // Ball
   ctx.beginPath();
-  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
-
-  ctx.fillStyle = "lime";
-
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+  ctx.fillStyle = gameOver ? '#f00' : '#09f';
   ctx.fill();
-}
 
-// Limit speed
-function limit(){
-
-  let s = Math.hypot(ball.dx, ball.dy);
-
-  if(s > ball.max){
-
-    ball.dx = ball.dx/s * ball.max;
-    ball.dy = ball.dy/s * ball.max;
-  }
-}
-
-// Mouse push
-function mouseForce(){
-
-  let d = dist(mouseX, mouseY, ball.x, ball.y);
-
-  if(d < 70){
-
-    let f = (70-d)/70;
-
-    let a = Math.atan2(
-      ball.y - mouseY,
-      ball.x - mouseX
-    );
-
-    ball.dx += Math.cos(a)*f*0.25;
-    ball.dy += Math.sin(a)*f*0.25;
-  }
-}
-
-
-// Game loop
-function loop(){
-
-  ctx.clearRect(0,0,400,400);
-
-  if(!gameOver){
-
-    mouseForce();
-    limit();
-
-    ball.x += ball.dx;
-    ball.y += ball.dy;
-
-    let d = dist(ball.x, ball.y, CX, CY);
-
-    if(d + ball.r >= R){
-
-      gameOver = true;
-      alert("Game Over! Score: "+score);
-    }
+  // Text
+  ctx.fillStyle = '#fff';
+  ctx.font = '16px sans-serif';
+  ctx.textAlign = 'center';
+  if (gameOver) {
+    ctx.fillText('Game Over! Restarting...', arena.x, arena.y - 220);
+  } else {
+    ctx.fillText('Keep the ball inside the circle', arena.x, arena.y - 220);
   }
 
-  drawCircle();
-  drawBall();
-
-  requestAnimationFrame(loop);
+  requestAnimationFrame(draw);
 }
 
-// Start
-loop();
-
+resetGame();
+draw();
 </script>
-
 </body>
 </html>
